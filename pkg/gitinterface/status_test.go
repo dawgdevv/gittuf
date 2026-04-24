@@ -139,3 +139,34 @@ func TestStatus(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Empty(t, statuses)
 }
+
+func TestNewStatusCodeFromByte(t *testing.T) {
+	t.Run("invalid status code", func(t *testing.T) {
+		_, err := NewStatusCodeFromByte('X')
+		assert.ErrorIs(t, err, ErrInvalidStatusCode)
+	})
+
+	t.Run("valid status codes", func(t *testing.T) {
+		testCases := []struct {
+			input    byte
+			expected StatusCode
+		}{
+			{' ', StatusCodeUnmodified},
+			{'M', StatusCodeModified},
+			{'T', StatusCodeTypeChanged},
+			{'A', StatusCodeAdded},
+			{'D', StatusCodeDeleted},
+			{'R', StatusCodeRenamed},
+			{'C', StatusCodeCopied},
+			{'U', StatusCodeUpdatedUnmerged},
+			{'?', StatusCodeUntracked},
+			{'!', StatusCodeIgnored},
+		}
+
+		for _, tc := range testCases {
+			code, err := NewStatusCodeFromByte(tc.input)
+			assert.Nil(t, err)
+			assert.Equal(t, tc.expected, code)
+		}
+	})
+}
