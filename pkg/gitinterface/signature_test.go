@@ -4,10 +4,12 @@
 package gitinterface
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCanSign(t *testing.T) {
@@ -72,4 +74,42 @@ func TestCanSign(t *testing.T) {
 			assert.Nil(t, err, fmt.Sprintf("unexpected result in test '%s'", name))
 		})
 	}
+}
+
+func TestCanSignSSHNoKey(t *testing.T) {
+	tmpDir := t.TempDir()
+	repo := setupRepository(t, tmpDir, false)
+
+	if err := repo.SetGitConfig("gpg.format", "ssh"); err != nil {
+		t.Fatal(err)
+	}
+
+	err := repo.CanSign()
+	assert.ErrorIs(t, err, ErrSigningKeyNotSpecified)
+}
+
+func TestVerifySignatureNotCommitOrTag(t *testing.T) {
+	tmpDir := t.TempDir()
+	repo := CreateTestGitRepository(t, tmpDir, false)
+
+	blobID, err := repo.WriteBlob([]byte("test"))
+	require.Nil(t, err)
+
+	err = repo.VerifySignature(context.Background(), blobID, nil)
+	assert.ErrorIs(t, err, ErrNotCommitOrTag)
+}
+
+func TestSignGitObjectUsingKeyUnknownMethod(t *testing.T) {
+	_, err := signGitObjectUsingKey([]byte("test"), []byte("-----BEGIN UNKNOWN KEY-----\nYWJj\n-----END UNKNOWN KEY-----\n"))
+	assert.ErrorIs(t, err, ErrUnknownSigningMethod)
+}
+
+func TestSignGitObjectUsingGPGKeyInvalid(t *testing.T) {
+	_, err := signGitObjectUsingGPGKey([]byte("test"), []byte("invalid"))
+	assert.ErrorContains(t, err, "openpgp")
+}
+
+func TestSignGitObjectUsingSSHKeyInvalid(t *testing.T) {
+	_, err := signGitObjectUsingSSHKey([]byte("test"), []byte("invalid"))
+	assert.ErrorContains(t, err, "ssh")
 }

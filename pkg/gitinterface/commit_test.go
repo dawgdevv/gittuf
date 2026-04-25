@@ -131,6 +131,22 @@ func TestRepositoryCommitUsingSpecificKey(t *testing.T) {
 	assert.Equal(t, expectedSecondCommitID, refHead.String())
 }
 
+func TestRepositoryCommitUsingSpecificKeyInvalidKey(t *testing.T) {
+	tempDir := t.TempDir()
+	repo := CreateTestGitRepository(t, tempDir, false)
+
+	refName := "refs/heads/main"
+	treeBuilder := NewTreeBuilder(repo)
+
+	emptyTreeID, err := treeBuilder.WriteTreeFromEntries(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = repo.CommitUsingSpecificKey(emptyTreeID, refName, "Initial commit\n", []byte("-----BEGIN UNKNOWN KEY-----\nYWJj\n-----END UNKNOWN KEY-----\n"))
+	assert.ErrorIs(t, err, ErrUnknownSigningMethod)
+}
+
 func TestCommitUsingSpecificKey(t *testing.T) {
 	tempDir := t.TempDir()
 	repo := CreateTestGitRepository(t, tempDir, false)

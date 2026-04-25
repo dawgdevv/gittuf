@@ -461,3 +461,60 @@ func TestAbsoluteReference(t *testing.T) {
 		assert.ErrorIs(t, err, ErrReferenceNotFound)
 	})
 }
+
+func TestCheckAndSetReferenceError(t *testing.T) {
+	tmpDir := t.TempDir()
+	repo := CreateTestGitRepository(t, tmpDir, false)
+
+	refName := "refs/heads/main"
+	treeBuilder := NewTreeBuilder(repo)
+
+	emptyTreeID, err := treeBuilder.WriteTreeFromEntries(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	firstCommitID, err := repo.Commit(emptyTreeID, refName, "Initial commit\n", false)
+	require.Nil(t, err)
+
+	_, err = repo.Commit(emptyTreeID, refName, "Second commit\n", false)
+	require.Nil(t, err)
+
+	err = repo.CheckAndSetReference(refName, firstCommitID, firstCommitID)
+	assert.ErrorContains(t, err, "unable to set Git reference")
+}
+
+func TestSetReferenceError(t *testing.T) {
+	tmpDir := t.TempDir()
+	repo := CreateTestGitRepository(t, tmpDir, false)
+
+	refName := "refs/heads/main"
+	treeBuilder := NewTreeBuilder(repo)
+
+	emptyTreeID, err := treeBuilder.WriteTreeFromEntries(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	commitID, err := repo.Commit(emptyTreeID, refName, "Initial commit\n", false)
+	require.Nil(t, err)
+
+	err = repo.SetReference("invalid ref name", commitID)
+	assert.ErrorContains(t, err, "unable to set Git reference")
+}
+
+func TestDeleteReferenceError(t *testing.T) {
+	tmpDir := t.TempDir()
+	repo := CreateTestGitRepository(t, tmpDir, false)
+
+	err := repo.DeleteReference("invalid ref name")
+	assert.ErrorContains(t, err, "unable to delete Git reference")
+}
+
+func TestRepositoryRefSpecError(t *testing.T) {
+	tmpDir := t.TempDir()
+	repo := CreateTestGitRepository(t, tmpDir, false)
+
+	_, err := repo.RefSpec("nonexistent", "", false)
+	assert.ErrorIs(t, err, ErrReferenceNotFound)
+}

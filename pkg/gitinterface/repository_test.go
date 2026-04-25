@@ -4,6 +4,7 @@
 package gitinterface
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -52,5 +53,20 @@ func TestRepository(t *testing.T) {
 		actualPath, err := filepath.EvalSymlinks(repo.GetGitDir())
 		require.Nil(t, err)
 		assert.Equal(t, expectedPath, actualPath)
+	})
+
+	t.Run("empty path", func(t *testing.T) {
+		_, err := LoadRepository("")
+		assert.ErrorIs(t, err, ErrRepositoryPathNotSpecified)
+	})
+
+	t.Run("invalid path", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		notARepoDir := filepath.Join(tmpDir, "not-a-repo")
+		if err := os.MkdirAll(notARepoDir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		_, err := LoadRepository(notARepoDir)
+		assert.ErrorContains(t, err, "unable to identify git directory for repository")
 	})
 }
