@@ -139,7 +139,6 @@ func TestGetPathIDInTree(t *testing.T) {
 		_, err := repo.GetPathIDInTree("a", ZeroHash)
 		assert.ErrorContains(t, err, "unable to enumerate items in tree")
 	})
-
 }
 
 func TestGetTreeItems(t *testing.T) {
